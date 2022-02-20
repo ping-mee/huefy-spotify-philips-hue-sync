@@ -7,6 +7,7 @@ import time
 import requests
 import os.path
 import random
+import sys
 try:
     from dotenv import load_dotenv
     import phue
@@ -16,8 +17,22 @@ try:
     import urllib.request
     import colorgram
     import numpy as np
+    from pystray import MenuItem as item
+    import pystray
+    from PIL import Image
 except:
     os.system('pip install -r '+current_path+r'/requirements.txt')
+    from dotenv import load_dotenv
+    import phue
+    from phue import Bridge
+    import spotipy
+    from spotipy.oauth2 import SpotifyOAuth
+    import urllib.request
+    import colorgram
+    import numpy as np
+    from pystray import MenuItem as item
+    import pystray
+    from PIL import Image
 
 def get_hue_bridge_ip():
     IP_URL = 'https://discovery.meethue.com/'
@@ -67,7 +82,24 @@ def rgb_to_xy(R, G, B):
         secondPos = G / total
     return [firstPos, secondPos]
 
+def exit_everything():
+    os._exit(1)
+
+global synced
+synced = True
+
+def start_sync():
+    synced=True
+
+def pause_sync():
+    synced=False
+
+
 if __name__ == '__main__':
+    tray_icon = Image.open(current_path+r'/icon.ico')
+    tray_menu = (item('Start synchronisation', start_sync), item('Pause synchronisation', pause_sync), item('Exit', exit_everything))
+    icon = pystray.Icon('Huefy Sync', tray_icon, 'Huefy Sync', tray_menu)
+    icon.run_detached()
     # Check if env file exsists
     if os.path.isfile(current_path+r'/.env') == False:
         # If not create it and add content
@@ -102,6 +134,18 @@ if __name__ == '__main__':
         sp_scopes = 'user-read-currently-playing user-read-playback-state streaming user-read-email user-read-private user-read-currently-playing user-read-playback-position user-read-playback-state'
         global sp
         sp = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=sp_scopes))
+        one_device_is_active = False
+        for x in sp.devices()['devices']:
+            if x['is_active'] == True:
+                try:
+                    sp.start_playback(x['id'])
+                except:
+                    pass
+                one_device_is_active = True
+                break
+        if one_device_is_active == False:
+            sp.start_playback(sp.devices()['devices'][0]['id'])
+            sp.next_track(sp.devices()['devices'][0]['id'])
 
         current_track_uri = (sp.current_playback().get("item")).get("uri")
         current_track_progress = (sp.current_playback().get("progress_ms"))/1000
@@ -121,7 +165,7 @@ if __name__ == '__main__':
 
         old_colors = extract_colors(sp.current_playback()['item']['album']['images'][0]['url'])
         old_cover_url = sp.current_playback()['item']['album']['images'][0]['url']
-        
+        bridge.set_light(hue_lights, 'on', True)
         while True:
             if sp.current_playback()['is_playing'] is True:
                 if count < numb_segments:
