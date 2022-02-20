@@ -142,4 +142,4 @@ cython_debug/
 .jpg
 
 #Cache
-.cache-*
+.*
