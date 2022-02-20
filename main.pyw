@@ -169,7 +169,6 @@ if __name__ == '__main__':
         icon = pystray.Icon('Huefy Sync', tray_icon, 'Huefy Sync', tray_menu)
         icon.run_detached()
         while True:
-            print(synced)
             if synced == True:
                 if sp.current_playback()['is_playing'] is True:
                     if count < numb_segments:
@@ -195,8 +194,8 @@ if __name__ == '__main__':
                     for light_id, color in zip(hue_lights, colors):
                         bridge.set_light(light_id, 'xy', rgb_to_xy(color.rgb.r, color.rgb.g, color.rgb.b))
 
-                    round(bar_percentage, 0) + 20
-                    bridge.set_light(hue_lights, 'bri', round(int(bar_percentage), 0))
+                    bar_percentage = round(bar_percentage, 0)
+                    bridge.set_light(hue_lights, 'bri', int(bar_percentage) + 30, 0)
                     old_cover_url = sp.current_playback()['item']['album']['images'][0]['url']
                     old_colors = colors
 
