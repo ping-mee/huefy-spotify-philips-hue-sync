@@ -1,0 +1,6 @@
+numpy
+phue
+python-dotenv
+colorgram.py
+urllib3
+spotipy
