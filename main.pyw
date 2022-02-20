@@ -85,21 +85,7 @@ def rgb_to_xy(R, G, B):
 def exit_everything():
     os._exit(1)
 
-global synced
-synced = True
-
-def start_sync():
-    synced=True
-
-def pause_sync():
-    synced=False
-
-
 if __name__ == '__main__':
-    tray_icon = Image.open(current_path+r'/icon.ico')
-    tray_menu = (item('Start synchronisation', start_sync), item('Pause synchronisation', pause_sync), item('Exit', exit_everything))
-    icon = pystray.Icon('Huefy Sync', tray_icon, 'Huefy Sync', tray_menu)
-    icon.run_detached()
     # Check if env file exsists
     if os.path.isfile(current_path+r'/.env') == False:
         # If not create it and add content
@@ -166,44 +152,62 @@ if __name__ == '__main__':
         old_colors = extract_colors(sp.current_playback()['item']['album']['images'][0]['url'])
         old_cover_url = sp.current_playback()['item']['album']['images'][0]['url']
         bridge.set_light(hue_lights, 'on', True)
+        global synced
+        synced = True
+
+        def start_sync():
+            bridge.set_light(hue_lights, 'on', True)
+            global synced
+            synced=True
+
+        def pause_sync():
+            global synced
+            synced=False
+
+        tray_icon = Image.open(current_path+r'/icon.ico')
+        tray_menu = (item('Start synchronisation', start_sync), item('Pause synchronisation', pause_sync), item('Exit', exit_everything))
+        icon = pystray.Icon('Huefy Sync', tray_icon, 'Huefy Sync', tray_menu)
+        icon.run_detached()
         while True:
-            if sp.current_playback()['is_playing'] is True:
-                if count < numb_segments:
-                    if((current_audio_features_segments_array[count]["loudness_max"]) < min_loudness):
-                        min_loudness_segment = count
-                        min_loudness = current_audio_features_segments_array[count]["loudness_max"]
-                    count = count + 1
-                max_loudness_positive = max_loudness - min_loudness
-                if (current_segment < numb_segments):
-                    current_loudness = current_audio_features_segments_array[current_segment]["loudness_max"]
-                    current_loudness_time = current_audio_features_segments_array[current_segment]["loudness_max_time"]
-                    current_confidence = current_audio_features_segments_array[current_segment]["confidence"]
-                    current_loudness_positive = current_loudness - min_loudness
-                    bar_percentage = ((current_loudness_positive/max_loudness_positive) * 100)* current_confidence
-                    current_segment = current_segment + 1
+            print(synced)
+            if synced == True:
+                if sp.current_playback()['is_playing'] is True:
+                    if count < numb_segments:
+                        if((current_audio_features_segments_array[count]["loudness_max"]) < min_loudness):
+                            min_loudness_segment = count
+                            min_loudness = current_audio_features_segments_array[count]["loudness_max"]
+                        count = count + 1
+                    max_loudness_positive = max_loudness - min_loudness
                     if (current_segment < numb_segments):
-                        current_segment_time = current_audio_features_segments_array[current_segment]["start"]
-                current_id = sp.current_playback()['item']['id']
-                if sp.current_playback()['item']['album']['images'][0]['url'] != old_cover_url:
-                    colors = extract_colors(sp.current_playback()['item']['album']['images'][0]['url'])
+                        current_loudness = current_audio_features_segments_array[current_segment]["loudness_max"]
+                        current_loudness_time = current_audio_features_segments_array[current_segment]["loudness_max_time"]
+                        current_confidence = current_audio_features_segments_array[current_segment]["confidence"]
+                        current_loudness_positive = current_loudness - min_loudness
+                        bar_percentage = ((current_loudness_positive/max_loudness_positive) * 100)* current_confidence
+                        current_segment = current_segment + 1
+                        if (current_segment < numb_segments):
+                            current_segment_time = current_audio_features_segments_array[current_segment]["start"]
+                    current_id = sp.current_playback()['item']['id']
+                    if sp.current_playback()['item']['album']['images'][0]['url'] != old_cover_url:
+                        colors = extract_colors(sp.current_playback()['item']['album']['images'][0]['url'])
+                    else:
+                        colors = old_colors
+                    for light_id, color in zip(hue_lights, colors):
+                        bridge.set_light(light_id, 'xy', rgb_to_xy(color.rgb.r, color.rgb.g, color.rgb.b))
+
+                    round(bar_percentage, 0) + 20
+                    bridge.set_light(hue_lights, 'bri', round(int(bar_percentage), 0))
+                    old_cover_url = sp.current_playback()['item']['album']['images'][0]['url']
+                    old_colors = colors
+
+                elif sp.current_playback()['is_playing'] is False:
+                    bridge.set_light(hue_lights, 'bri', 254)
+                    for x in hue_lights:
+                        bridge.set_light(x,'xy',convertColor(getRandomHex()))
+                    time.sleep(1)
+
                 else:
-                    colors = old_colors
-                for light_id, color in zip(hue_lights, colors):
-                    bridge.set_light(light_id, 'xy', rgb_to_xy(color.rgb.r, color.rgb.g, color.rgb.b))
-
-                round(bar_percentage, 0) + 20
-                bridge.set_light(hue_lights, 'bri', round(int(bar_percentage), 0))
-                old_cover_url = sp.current_playback()['item']['album']['images'][0]['url']
-                old_colors = colors
-
-            elif sp.current_playback()['is_playing'] is False:
-                bridge.set_light(hue_lights, 'bri', 254)
-                for x in hue_lights:
-                    bridge.set_light(x,'xy',convertColor(getRandomHex()))
-                time.sleep(1)
-
-            else:
-                bridge.set_light(hue_lights, 'bri', 254)
-                for x in hue_lights:
-                    bridge.set_light(x,'xy',convertColor(getRandomHex()))
-                time.sleep(1)
+                    bridge.set_light(hue_lights, 'bri', 254)
+                    for x in hue_lights:
+                        bridge.set_light(x,'xy',convertColor(getRandomHex()))
+                    time.sleep(1)
