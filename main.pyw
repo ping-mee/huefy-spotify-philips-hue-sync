@@ -209,4 +209,3 @@ if __name__ == '__main__':
                     bridge.set_light(hue_lights, 'bri', 254)
                     for x in hue_lights:
                         bridge.set_light(x,'xy',convertColor(getRandomHex()))
-                    time.sleep(1)
