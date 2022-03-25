@@ -164,17 +164,11 @@ if __name__ == '__main__':
             global synced
             synced=False
 
-        def compare_old_with_new_track():
-            if sp.current_playback()['item']['uri'] != current_track_uri:
-                return True
-            else:
-                return False
-
         tray_icon = Image.open(current_path+r'/icon.ico')
         tray_menu = (item('Start synchronisation', start_sync), item('Pause synchronisation', pause_sync), item('Exit', exit_everything))
         icon = pystray.Icon('Huefy Sync', tray_icon, 'Huefy Sync', tray_menu)
         icon.run_detached()
-
+        
         while True:
             if synced == True:
                 if sp.current_playback()['is_playing'] is True:
@@ -194,7 +188,7 @@ if __name__ == '__main__':
                         if (current_segment < numb_segments):
                             current_segment_time = current_audio_features_segments_array[current_segment]["start"]
                     current_id = sp.current_playback()['item']['id']
-                    if compare_old_with_new_track() == True:
+                    if sp.current_playback()['item']['album']['images'][0]['url'] != old_cover_url:
                         colors = extract_colors(sp.current_playback()['item']['album']['images'][0]['url'])
                     else:
                         colors = old_colors
@@ -209,3 +203,4 @@ if __name__ == '__main__':
                     bridge.set_light(hue_lights, 'bri', 254)
                     for x in hue_lights:
                         bridge.set_light(x,'xy',convertColor(getRandomHex()))
+                    time.sleep(1)
